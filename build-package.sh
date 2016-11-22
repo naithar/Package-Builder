@@ -90,7 +90,7 @@ echo ">> Finished running makefile"
 # Copy test credentials for project if available
 if [ -e "${credentialsDir}" ]; then
 	echo ">> Found folder with test credentials."
-  
+
   # Copy test credentials over
   echo ">> copying ${credentialsDir} to ${projectBuildDir}"
   cp -RP ${credentialsDir}/* ${projectBuildDir}
@@ -100,14 +100,32 @@ fi
 
 # Execute test cases
 if [ -e "${projectFolder}/Tests" ]; then
-    echo ">> Testing Swift package..."
+    echo ">> Testing Swift package for ${osName} in ${projectFolder}..."
     # Execute OS specific pre-test steps
     sourceScript "`find ${projectFolder} -path "*/${projectName}/${osName}/before_tests.sh" -not -path "*/Package-Builder/*" -not -path "*/Packages/*"`" ">> Completed ${osName} pre-tests steps."
 
     # Execute common pre-test steps
     sourceScript "`find ${projectFolder} -path "*/${projectName}/common/before_tests.sh" -not -path "*/Package-Builder/*" -not -path "*/Packages/*"`" ">> Completed common pre-tests steps."
 
-    swift test
+    if [ -e "${projectFolder}/common/test/macOS" ] && [ "${osName}" = "osx" ]; then
+        echo ">> Using custom test script."
+        source "${projectFolder}/common/test/macOS"
+    elif [ -e "${projectFolder}/common/test/linux" ] && [ "${osName}" = "linux" ]; then
+        echo ">> Using custom test script."
+        source "${projectFolder}/common/test/linux"
+    else
+        echo ">> Using default test script for ${osName}."
+
+        if [ -e "${projectFolder}/common/test/macOS" ]; then
+            echo ">> Custom macOS script existed."
+        fi
+
+        if [ -e "${projectFolder}/common/test/linux" ]; then
+            echo ">> Custom linux script existed."
+        fi
+
+        swift test
+    fi
 
     # Execute common post-test steps
     sourceScript "`find ${projectFolder} -path "*/${projectName}/common/after_tests.sh" -not -path "*/Package-Builder/*" -not -path "*/Packages/*"`" ">> Completed common post-tests steps."
